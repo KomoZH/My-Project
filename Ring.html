@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        .loading-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            padding: 30px;
+            font-family: Arial, sans-serif;
+        }
+        
+        .loading-spinner {
+            font-size: 2.5em;  /* 2.5倍大小 */
+            color: #555;
+            animation: rotate 1.5s linear infinite;
+        }
+        
+        .loading-text {
+            font-size: 1.8em;
+            color: #333;
+        }
+        
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-container">
+        <i class="fa-solid fa-rotate loading-spinner"></i>
+        <span class="loading-text">Loading...</span>
+    </div>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>现代化双语实时时钟</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            transition: background 0.5s;
+        }
+
+        .clock-container {
+            width: 100%;
+            max-width: 800px;
+            padding: 30px;
+        }
+
+        .clock-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            text-align: center;
+            transition: all 0.4s ease;
+        }
+
+        .clock-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+        }
+
+        .title-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .title {
+            font-size: 2rem;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 600;
+        }
+
+        .lang-switch {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 30px;
+            padding: 8px 16px;
+            color: white;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .lang-switch:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .date-display {
+            font-size: 2.2rem;
+            color: white;
+            font-weight: 500;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            min-height: 65px;
+            font-family: 'Courier New', Courier, monospace;
+            letter-spacing: 1px;
+        }
+
+        .time-display {
+            font-size: 4.5rem;
+            font-weight: 700;
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 5px 0 20px 0;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            letter-spacing: 2px;
+        }
+
+        .footer {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1rem;
+            margin-top: 20px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        @media (max-width: 768px) {
+            .date-display {
+                font-size: 1.8rem;
+            }
+            
+            .time-display {
+                font-size: 3.5rem;
+            }
+            
+            .title {
+                font-size: 1.6rem;
+            }
+            
+            .lang-switch {
+                padding: 6px 12px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .date-display {
+                font-size: 1.4rem;
+                min-height: 55px;
+            }
+            
+            .time-display {
+                font-size: 2.5rem;
+            }
+            
+            .title {
+                font-size: 1.3rem;
+            }
+            
+            .clock-card {
+                padding: 25px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="clock-container">
+        <div class="clock-card">
+            <div class="title-container">
+                <h1 class="title">现代化双语时钟</h1>
+                <div id="langSwitch" class="lang-switch">切换为英文</div>
+            </div>
+            <div id="date" class="date-display">2024-01-01 星期一</div>
+            <div id="time" class="time-display">00:00:00</div>
+            <div class="footer">精确到秒 | 支持中英双语切换</div>
+        </div>
+    </div>
+
+    <script>
+        let isEnglish = false; // 默认中文显示
+        
+        function getOrdinalSuffix(day) {
+            if (day > 3 && day < 21) return 'th';
+            switch (day % 10) {
+                case 1: return 'st';
+                case 2: return 'nd';
+                case 3: return 'rd';
+                default: return 'th';
+            }
+        }
+        
+        function getEnglishDate(date) {
+            const months = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'Jun.', 
+                           'Jul.', 'Aug.', 'Sep.', 'Oct.', 'Nov.', 'Dec.'];
+            const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 
+                             'Thursday', 'Friday', 'Saturday'];
+            
+            const day = date.getDate();
+            const suffix = getOrdinalSuffix(day);
+            const month = months[date.getMonth()];
+            const year = date.getFullYear();
+            const weekday = weekdays[date.getDay()];
+            
+            return `${month}${day}${suffix}, ${year} ${weekday}`;
+        }
+        
+        function getChineseDate(date) {
+            const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const weekday = weekdays[date.getDay()];
+            
+            return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} ${weekday}`;
+        }
+        
+        function updateTime() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            
+            // 更新日期显示
+            const dateDisplay = isEnglish ? getEnglishDate(now) : getChineseDate(now);
+            document.getElementById('date').textContent = dateDisplay;
+            
+            // 更新时间显示
+            document.getElementById('time').textContent = `${hours}:${minutes}:${seconds}`;
+        }
+        
+        // 添加语言切换功能
+        document.getElementById('langSwitch').addEventListener('click', function() {
+            isEnglish = !isEnglish;
+            this.textContent = isEnglish ? '切换为中文' : '切换为英文';
+            updateTime();
+        });
+        
+        // 初始加载时间
+        updateTime();
+        
+        // 每秒更新一次时间
+        setInterval(updateTime, 1000);
+    </script>
+</body>
+</html>

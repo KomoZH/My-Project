@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>粒子连线</title>
+        <style>
+            body{
+                margin:0;
+            }
+            #canvas{
+                display: block;
+                background-color: black;
+            }
+        </style>
+    </head>
+        <canvas id="canvas"></canvas>
+        <script>
+            //初始化画布属性
+            var cxt=document.getElementById("canvas").getContext('2d');
+            var canvas=document.getElementById("canvas");
+            canvas.width=window.innerWidth;
+            canvas.height=window.innerHeight;
+            var num=300;
+            var data=[];//储存粒子的属性数据
+            function init(){
+                for(var i=0;i<num;i++){
+                    data[i]={
+                        x1: Math.random() * window.innerWidth,
+                        y1: Math.random() * window.innerHeight,
+                        sX: Math.random() * 0.6 - 0.3,//取值范围0.3-0.3
+                        sY: Math.random() * 0.6 - 0.3
+                    };
+                    createArc(data[i].x1,data[i].y1);
+                }
+            }
+            init();
+
+            //创建粒子
+            function createArc(x,y){
+                cxt.save();
+                cxt.beginPath();
+                cxt.fillStyle='greenyellow';
+                cxt.arc(x,y,2,0,Math.PI*2,false);
+                cxt.closePath();
+                cxt.fill();
+                cxt.restore();
+            }
+
+            //创建线条
+            function createLine(x1,y1,x2,y2){
+                cxt.save();
+                var lin=cxt.createLinearGradient(x1,y1,x2,y2);
+                lin.addColorStop(0,'blue');
+                lin.addColorStop(1,'green');
+                cxt.lineWidth=1.5;
+                cxt.strokeStyle=lin;
+                cxt.beginPath();
+                //连线
+                cxt.moveTo(x1,y1);
+                cxt.closePath();
+                cxt.lineTo(x2,y2);
+                cxt.stroke();
+                cxt.restore();
+            }
+
+            //粒子运动
+            function drawPath(){
+                cxt.clearRect(0,0,window.innerWidth,window.innerHeight);//先清除之前的圆
+                for(var i=0;i<num;i++){
+                    data[i].x1+=data[i].sX;
+                    data[i].y1+=data[i].sY;
+                    //边界值检测
+                    if(data[i].x1<0||data[i].x1>window.innerWidth) data[i].sX=-data[i].sX;
+                    if(data[i].y1<0||data[i].y1>window.innerHeight) data[i].sY=-data[i].sY;
+                    createArc(data[i].x1,data[i].y1);
+                    //利用勾股定理判断是否连线
+                    for(var j=i+1;j<num;j++){//下一个点/下下一个点...
+                        if(Math.pow(data[i].x1-data[j].x1,2)+Math.pow(data[i].y1-data[j].y1,2)<100*80)createLine(data[i].x1,data[i].y1,data[j].x1,data[j].y1);
+                    }
+                }
+            }
+            setInterval(function(){
+                drawPath()
+            },1);
+        </script>
+    <body>
+    </body>
+</html>

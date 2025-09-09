@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fast C++ Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CodeMirror -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #editor-container {
+            width: 100%;
+            height: 100vh;
+        }
+        
+        .CodeMirror {
+            height: calc(100vh - 30px);
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .status-bar {
+            background: #0078d7;
+            color: white;
+            font-size: 12px;
+            padding: 3px 15px;
+            display: flex;
+            justify-content: space-between;
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+        }
+        
+        .status-section {
+            display: flex;
+            align-items: center;
+        }
+        
+        .status-item {
+            padding: 2px 8px;
+            border-radius: 3px;
+            margin: 0 2px;
+            cursor: default;
+        }
+        
+        #toolbar {
+            display: flex;
+            justify-content: center;
+            background: #2d2d2d;
+            padding: 5px;
+            gap: 10px;
+            z-index: 100;
+            height: 35px;
+        }
+        
+        .tool-button {
+            background: #3c3c3c;
+            color: #d4d4d4;
+            border: 1px solid #4d4d4d;
+            border-radius: 4px;
+            padding: 4px 12px;
+            font-size: 13px;
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .tool-button:hover {
+            background: #505050;
+            border-color: #606060;
+        }
+        
+        .tool-button i {
+            font-size: 12px;
+        }
+        
+        .loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #1e1e1e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            color: #d4d4d4;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 600px) {
+            .tool-button span {
+                display: none;
+            }
+            .tool-button i {
+                font-size: 14px;
+            }
+            .status-item:not(.keep) {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-screen" id="loading">
+        Loading editor... Please wait.
+    </div>
+    
+    <div id="toolbar">
+        <button class="tool-button" id="font-increase"><i>+</i> <span>Larger Font</span></button>
+        <button class="tool-button" id="font-decrease"><i>-</i> <span>Smaller Font</span></button>
+        <div style="width: 2px; background: #555; margin: 0 10px;"></div>
+        <button class="tool-button" id="copy-code"><i class="fas fa-copy"></i> <span>Copy Code</span></button>
+    </div>
+    
+    <div id="editor-container"></div>
+    
+    <div class="status-bar">
+        <div class="status-section">
+            <div class="status-item keep">UTF-8</div>
+        </div>
+        <div class="status-section">
+            <div class="status-item keep">C++</div>
+            <div class="status-item" id="line-info">Ln 1, Col 1</div>
+            <div class="status-item" id="font-size">14px</div>
+            <div class="status-item">Spaces: 4</div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+    <script>
+        // Initial code
+        const initialCode = `#include <iostream>
+
+using namespace std;
+
+int main() {
+    cout << "Hello, Fast C++ Editor!" << endl;
+    
+    // Calculate factorial
+    int n = 5;
+    int factorial = 1;
+    
+    for(int i = 1; i <= n; i++) {
+        factorial *= i;
+    }
+    
+    cout << "Factorial of " << n << " is: " << factorial << endl;
+    
+    return 0;
+}`;
+
+        // Initialize CodeMirror
+        const editor = CodeMirror(document.getElementById('editor-container'), {
+            value: initialCode,
+            mode: 'text/x-c++src',
+            theme: 'dracula',
+            lineNumbers: true,
+            lineWrapping: true,
+            indentUnit: 4,
+            indentWithTabs: false,
+            tabSize: 4,
+            electricChars: true,
+            autofocus: true
+        });
+        
+        // Set font family
+        const editorStyle = document.createElement('style');
+        editorStyle.textContent = `
+            .CodeMirror {
+                font-family: Consolas, Monaco, 'Courier New', monospace !important;
+            }
+        `;
+        document.head.appendChild(editorStyle);
+        
+        // Hide loading screen
+        document.getElementById('loading').style.display = 'none';
+        
+        // Update line info
+        function updateLineInfo() {
+            const cursor = editor.getCursor();
+            document.getElementById('line-info').textContent = `Ln ${cursor.line + 1}, Col ${cursor.ch + 1}`;
+        }
+        
+        editor.on('cursorActivity', updateLineInfo);
+        updateLineInfo();
+        
+        // Font size
+        let fontSize = 14;
+        document.getElementById('font-size').textContent = `${fontSize}px`;
+        
+        function changeFontSize(size) {
+            fontSize = size;
+            editor.getWrapperElement().style.fontSize = fontSize + 'px';
+            editor.refresh();
+            document.getElementById('font-size').textContent = `${fontSize}px`;
+        }
+        
+        document.getElementById('font-increase').addEventListener('click', () => {
+            changeFontSize(Math.min(24, fontSize + 1));
+        });
+        
+        document.getElementById('font-decrease').addEventListener('click', () => {
+            changeFontSize(Math.max(10, fontSize - 1));
+        });
+        
+        // Copy code button
+        document.getElementById('copy-code').addEventListener('click', function() {
+            const code = editor.getValue();
+            navigator.clipboard.writeText(code).then(() => {
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-check"></i> <span>Copied!</span>';
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                }, 2000);
+            });
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            editor.refresh();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Classic Plus C++ 代码编辑器</title>
+    <!-- 引入CodeMirror库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/ambiance.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #2b2b2b;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        .editor-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            border: 1px solid #555;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        .editor-header {
+            background: linear-gradient(to bottom, #3c3c3c, #2a2a2a);
+            color: #d4d4d4;
+            padding: 10px 15px;
+            border-bottom: 1px solid #555;
+            font-size: 14px;
+        }
+        .editor-title {
+            font-weight: bold;
+        }
+        .CodeMirror {
+            height: 500px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .cm-s-ambiance .CodeMirror-gutters {
+            background-color: #2a2a2a;
+            border-right: 1px solid #444;
+        }
+        .cm-s-ambiance .CodeMirror-linenumber {
+            color: #7a7a7a;
+            padding: 0 5px;
+        }
+        .cm-s-ambiance .cm-comment {
+            color: #6a9955; /* 绿色注释 */
+        }
+        .cm-s-ambiance .cm-keyword {
+            color: #569cd6; /* 蓝色关键字 */
+        }
+        .cm-s-ambiance .cm-string {
+            color: #ce9178; /* 橙色字符串 */
+        }
+        .cm-s-ambiance .cm-def {
+            color: #dcdcaa; /* 黄色函数名 */
+        }
+        .cm-s-ambiance .cm-variable {
+            color: #9cdcfe; /* 浅蓝变量 */
+        }
+        .cm-s-ambiance .cm-number {
+            color: #b5cea8; /* 绿色数字 */
+        }
+        .cm-s-ambiance .cm-type {
+            color: #4ec9b0; /* 青色类型 */
+        }
+        .editor-footer {
+            background-color: #2a2a2a;
+            color: #7a7a7a;
+            padding: 8px 15px;
+            font-size: 12px;
+            border-top: 1px solid #555;
+        }
+        .shortcut {
+            display: inline-block;
+            margin: 0 15px;
+        }
+        .shortcut kbd {
+            background-color: #3c3c3c;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="editor-container">
+        <div class="editor-header">
+            <span class="editor-title">Classic Plus C++ 编辑器</span>
+        </div>
+        <textarea id="cpp-editor">#include &lt;iostream&gt;
+using namespace std;
+
+// 计算阶乘的函数
+int factorial(int n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}
+
+int main() {
+    cout << "输入一个整数: ";
+    int num;
+    cin >> num;
+    
+    // 计算并输出阶乘
+    cout << num << "! = " << factorial(num) << endl;
+    
+    string message = "Hello, C++ Editor!";
+    cout << message << endl;
+    
+    return 0;
+}</textarea>
+        <div class="editor-footer">
+            <span class="shortcut"><kbd>Ctrl+D</kbd> 删除当前行</span>
+            <span class="shortcut"><kbd>Ctrl+/</kbd> 注释/取消注释</span>
+            <span class="shortcut"><kbd>F11</kbd> 编译运行</span>
+        </div>
+    </div>
+
+    <script>
+        // 初始化编辑器
+        const editor = CodeMirror.fromTextArea(document.getElementById('cpp-editor'), {
+            mode: "text/x-c++src",
+            theme: "ambiance",
+            lineNumbers: true,
+            indentUnit: 4,
+            tabSize: 4,
+            indentWithTabs: false,
+            electricChars: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            styleActiveLine: true,
+            lineWrapping: false,
+            gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
+        });
+
+        // 设置Classic Plus配色
+        editor.setOption("theme", "ambiance");
+
+        // 自定义快捷键
+        const map = {
+            "Ctrl-D": "deleteLine",
+            "Ctrl-/": "toggleComment",
+            "F11": function() {
+                alert("编译运行功能 (模拟)\n代码已保存并编译!");
+            }
+        };
+
+        // 添加快捷键
+        editor.addKeyMap(map);
+
+        // 自定义删除行功能
+        CodeMirror.commands.deleteLine = function(cm) {
+            const doc = cm.getDoc();
+            const cursor = doc.getCursor();
+            doc.replaceRange("", 
+                {line: cursor.line, ch: 0}, 
+                {line: cursor.line, ch: 1000000});
+            if (cursor.line < doc.lastLine()) {
+                doc.setCursor(cursor.line, 0);
+            }
+        };
+
+        // 自定义注释功能
+        CodeMirror.commands.toggleComment = function(cm) {
+            const doc = cm.getDoc();
+            const start = doc.getCursor("from");
+            const end = doc.getCursor("to");
+            
+            // 检查当前行是否已注释
+            const lineText = doc.getLine(start.line);
+            const isCommented = lineText.trim().startsWith("//");
+            
+            if (isCommented) {
+                // 取消注释
+                for (let i = start.line; i <= end.line; i++) {
+                    const text = doc.getLine(i);
+                    const pos = text.indexOf("//");
+                    if (pos !== -1) {
+                        doc.replaceRange("", 
+                            {line: i, ch: pos}, 
+                            {line: i, ch: pos + 2});
+                    }
+                }
+            } else {
+                // 添加注释
+                for (let i = start.line; i <= end.line; i++) {
+                    doc.replaceRange("//", {line: i, ch: 0});
+                }
+            }
+        };
+
+        // 设置编辑器焦点
+        editor.focus();
+    </script>
+</body>
+</html>

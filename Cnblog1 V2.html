@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>粒子连线交互系统（仿CNBlog动画）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            background: #fff;
+            font-family: 'Segoe UI', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        #particleCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            background-color: #ffffff;
+        }
+        
+        .header {
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            z-index: 10;
+        }
+        
+        h1 {
+            font-weight: 350;
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+            color: #444;
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            font-weight: 300;
+            font-size: 1rem;
+            color: #777;
+            letter-spacing: 0.5px;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 25px;
+            right: 25px;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 12px;
+            padding: 18px;
+            width: 240px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            z-index: 10;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .control-group {
+            margin-bottom: 12px;
+        }
+        
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: #555;
+            margin-bottom: 5px;
+            font-weight: 400;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: #eaeaea;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #888;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #555;
+            transform: scale(1.15);
+        }
+        
+        .status {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #777;
+            margin-top: 4px;
+            padding: 0 3px;
+        }
+        
+        .connection-threshold {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .connection-threshold > div {
+            width: 12px;
+            height: 12px;
+            background: #ccc;
+            border-radius: 50%;
+            margin: 0 3px;
+            transition: transform 0.3s ease, background 0.3s ease;
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            font-size: 0.85rem;
+            color: #666;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 10px 15px;
+            border-radius: 12px;
+            z-index: 10;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>粒子连线交互系统</h1>
+        <div class="subtitle">分子结构动效</div>
+    </div>
+    
+    <div class="info-panel">
+        <div>节点数: <span id="nodeCount">40</span></div>
+        <div>当前连接数: <span id="connectionCount">0</span></div>
+    </div>
+    
+    <canvas id="particleCanvas"></canvas>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label for="particleCount">粒子数量</label>
+            <input type="range" id="particleCount" min="5" max="150" value="40">
+            <div class="status">
+                <span>较少</span>
+                <span id="particleCountValue">40</span>
+                <span>较多</span>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <label for="lineDistance">连接距离</label>
+            <input type="range" id="lineDistance" min="50" max="300" value="120">
+            <div class="status">
+                <span>较近</span>
+                <span id="lineDistanceValue">120</span>
+                <span>较远</span>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <label for="speedControl">移动速度</label>
+            <input type="range" id="speedControl" min="0" max="2" step="0.1" value="1">
+            <div class="status">
+                <span>较慢</span>
+                <span id="speedValue">1.0</span>
+                <span>较快</span>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <label>连接阈值</label>
+            <div class="connection-threshold">
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 获取Canvas元素和上下文
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 设置Canvas尺寸为窗口大小
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        
+        // 初始化调整尺寸
+        resizeCanvas();
+        
+        // 粒子数组
+        let particles = [];
+        
+        // 鼠标位置
+        const mouse = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 150
+        };
+        
+        // 配置参数
+        let config = {
+            particleCount: 40,
+            lineDistance: 120,
+            minDistance: 80,
+            maxLineAlpha: 0.8,
+            speedFactor: 1.0
+        };
+        
+        // 粒子类
+        class Particle {
+            constructor(x, y, dx, dy, radius) {
+                this.x = x;
+                this.y = y;
+                this.originalX = x;
+                this.originalY = y;
+                this.dx = dx;
+                this.dy = dy;
+                this.radius = radius;
+                this.color = '#888';
+            }
+            
+            // 绘制粒子
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+            
+            // 更新粒子位置
+            update() {
+                // 当超出边界时反转方向
+                if (this.x > canvas.width || this.x < 0) {
+                    this.dx = -this.dx;
+                }
+                
+                if (this.y > canvas.height || this.y < 0) {
+                    this.dy = -this.dy;
+                }
+                
+                // 更新位置
+                this.x += this.dx * config.speedFactor;
+                this.y += this.dy * config.speedFactor;
+                
+                // 绘制粒子
+                this.draw();
+            }
+        }
+        
+        // 创建粒子
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < config.particleCount; i++) {
+                const radius = 1.5 + Math.random() * 1.5;
+                const x = Math.random() * (canvas.width - radius * 2) + radius;
+                const y = Math.random() * (canvas.height - radius * 2) + radius;
+                const dx = (Math.random() - 0.5) * 1.5;
+                const dy = (Math.random() - 0.5) * 1.5;
+                
+                particles.push(new Particle(x, y, dx, dy, radius));
+            }
+        }
+        
+        // 绘制连接线
+        function drawConnections() {
+            let connectionCount = 0;
+            
+            // 绘制粒子之间的连接线
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < config.lineDistance) {
+                        const alpha = 1 - (distance - config.minDistance) / (config.lineDistance - config.minDistance);
+                        if (alpha > 0) {
+                            ctx.beginPath();
+                            ctx.strokeStyle = `rgba(120, 120, 120, ${alpha * config.maxLineAlpha})`;
+                            ctx.lineWidth = 0.8;
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.stroke();
+                            connectionCount++;
+                        }
+                    }
+                }
+                
+                // 绘制粒子与鼠标之间的连接线
+                const mdx = particles[i].x - mouse.x;
+                const mdy = particles[i].y - mouse.y;
+                const mouseDistance = Math.sqrt(mdx * mdx + mdy * mdy);
+                
+                if (mouseDistance < mouse.radius && mouseDistance > 0) {
+                    const alpha = 1 - mouseDistance / mouse.radius;
+                    ctx.beginPath();
+                    ctx.strokeStyle = `rgba(80, 80, 80, ${alpha * 0.4})`;
+                    ctx.lineWidth = 0.8;
+                    ctx.moveTo(particles[i].x, particles[i].y);
+                    ctx.lineTo(mouse.x, mouse.y);
+                    ctx.stroke();
+                    connectionCount++;
+                }
+            }
+            
+            document.getElementById('connectionCount').textContent = connectionCount;
+        }
+        
+        // 绘制鼠标粒子
+        function drawMouseParticle() {
+            ctx.beginPath();
+            ctx.arc(mouse.x, mouse.y, 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(40, 40, 40, 0.8)';
+            ctx.fill();
+        }
+        
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制连接线
+            drawConnections();
+            
+            // 更新并绘制粒子
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+            }
+            
+            // 绘制鼠标粒子
+            drawMouseParticle();
+        }
+        
+        // 事件监听器 - 鼠标移动
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+        
+        // 事件监听器 - 窗口大小变化
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            initParticles();
+        });
+        
+        // 控件事件监听器
+        document.getElementById('particleCount').addEventListener('input', (e) => {
+            config.particleCount = parseInt(e.target.value);
+            document.getElementById('particleCountValue').textContent = config.particleCount;
+            document.getElementById('nodeCount').textContent = config.particleCount;
+            initParticles();
+        });
+        
+        document.getElementById('lineDistance').addEventListener('input', (e) => {
+            config.lineDistance = parseInt(e.target.value);
+            document.getElementById('lineDistanceValue').textContent = config.lineDistance;
+        });
+        
+        document.getElementById('speedControl').addEventListener('input', (e) => {
+            config.speedFactor = parseFloat(e.target.value);
+            document.getElementById('speedValue').textContent = config.speedFactor.toFixed(1);
+        });
+        
+        // 初始化动画
+        initParticles();
+        animate();
+        
+        // 阈值指示器动画
+        const dots = document.querySelectorAll('.connection-threshold > div');
+        setInterval(() => {
+            dots.forEach((dot, index) => {
+                setTimeout(() => {
+                    dot.style.transform = 'scale(1.4)';
+                    dot.style.background = '#888';
+                    setTimeout(() => {
+                        dot.style.transform = 'scale(1.0)';
+                        dot.style.background = '#ccc';
+                    }, 300);
+                }, index * 200);
+            });
+        }, 2000);
+    </script>
+</body>
+</html>
